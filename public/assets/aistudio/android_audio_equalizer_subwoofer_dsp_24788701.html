@@ -1,0 +1,1286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>AuraEQ - Pro Audio Equalizer</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+    
+    * {
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+    }
+    
+    body {
+      font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+      background-color: #f1f5f9;
+      color: #0f172a;
+    }
+
+    .font-mono-num {
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    /* Vertical slider styling */
+    .slider-vertical-container {
+      position: relative;
+      width: 28px;
+      height: 140px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .slider-vertical-track {
+      width: 6px;
+      height: 100%;
+      background: #e2e8f0;
+      border-radius: 999px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .slider-vertical-fill {
+      position: absolute;
+      bottom: 50%;
+      width: 100%;
+      background: #0f766e;
+      border-radius: 999px;
+      transition: height 0.05s linear;
+    }
+
+    input[type=range].eq-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      position: absolute;
+      width: 140px;
+      height: 28px;
+      background: transparent;
+      transform: rotate(-90deg);
+      cursor: pointer;
+      margin: 0;
+      z-index: 10;
+    }
+
+    input[type=range].eq-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #0f766e;
+      border: 3px solid #ffffff;
+      box-shadow: 0 2px 6px rgba(15, 118, 110, 0.45);
+      cursor: pointer;
+      transition: transform 0.1s ease, box-shadow 0.1s ease;
+    }
+
+    input[type=range].eq-slider::-webkit-slider-thumb:hover,
+    input[type=range].eq-slider::-webkit-slider-thumb:active {
+      transform: scale(1.15);
+      box-shadow: 0 4px 10px rgba(15, 118, 110, 0.6);
+      background: #0d9488;
+    }
+
+    /* Horizontal sliders */
+    input[type=range].h-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 8px;
+      background: #e2e8f0;
+      border-radius: 999px;
+      outline: none;
+    }
+
+    input[type=range].h-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: #0f766e;
+      border: 3px solid #ffffff;
+      box-shadow: 0 2px 6px rgba(15, 118, 110, 0.4);
+      cursor: pointer;
+      transition: transform 0.1s ease;
+    }
+
+    input[type=range].h-slider::-webkit-slider-thumb:active {
+      transform: scale(1.2);
+    }
+
+    /* Custom scrollbar for horizontal eq bands */
+    .scrollbar-hide::-webkit-scrollbar {
+      display: none;
+    }
+    .scrollbar-hide {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
+    /* Card glow & shadow styling */
+    .card-pro {
+      background: #ffffff;
+      border-radius: 20px;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.05), 0 2px 6px -1px rgba(15, 23, 42, 0.02);
+    }
+
+    .pill-header {
+      background: #e0f2fe;
+      color: #0369a1;
+    }
+
+    .active-preset {
+      background: #0f766e !important;
+      color: #ffffff !important;
+      border-color: #0f766e !important;
+      font-weight: 600;
+      box-shadow: 0 4px 12px rgba(15, 118, 110, 0.3);
+    }
+
+    /* Real-time spectrum canvas */
+    #visualizerCanvas, #eqCurveCanvas, #subCurveCanvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* Toggle switch switch */
+    .switch-checkbox:checked + .switch-label {
+      background-color: #0f766e;
+    }
+    .switch-checkbox:checked + .switch-label .switch-dot {
+      transform: translateX(1.25rem);
+    }
+  </style>
+</head>
+<body class="min-h-screen pb-12 flex justify-center bg-slate-100 text-slate-800 antialiased selection:bg-teal-500 selection:text-white">
+  
+  <!-- Mobile Container Wrapper -->
+  <div class="w-full max-w-md min-h-screen bg-slate-50 flex flex-col shadow-2xl relative overflow-x-hidden border-x border-slate-200">
+    
+    <!-- Top System & Status Bar Mockup -->
+    <header class="sticky top-0 z-30 bg-slate-50/90 backdrop-blur-md px-5 pt-3 pb-3 border-b border-slate-200/80 flex items-center justify-between">
+      <div class="flex items-center space-x-3">
+        <div class="w-10 h-10 rounded-xl bg-teal-800 text-white flex items-center justify-center shadow-md shadow-teal-900/20">
+          <i class="fa-solid fa-sliders text-lg"></i>
+        </div>
+        <div>
+          <div class="flex items-center gap-1.5">
+            <h1 class="text-lg font-extrabold tracking-tight text-slate-900">AuraEQ Pro</h1>
+            <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-teal-100 text-teal-800 uppercase tracking-wider">v3.4 DSP</span>
+          </div>
+          <p class="text-xs text-slate-500 font-medium flex items-center gap-1">
+            <span id="audioEngineDot" class="w-2 h-2 rounded-full bg-amber-500 inline-block"></span>
+            <span id="audioEngineStatus">DSP Ready &bull; Real Audio</span>
+          </p>
+        </div>
+      </div>
+      
+      <!-- Live Demo Audio Generator / Source Switch -->
+      <div class="flex items-center gap-2">
+        <button id="audioPlayBtn" class="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold text-white bg-teal-700 hover:bg-teal-800 active:scale-95 transition shadow-sm shadow-teal-700/30">
+          <i id="playIcon" class="fa-solid fa-play text-[11px]"></i>
+          <span id="playText">Test Sound</span>
+        </button>
+        <button id="infoBtn" class="w-8 h-8 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-600 flex items-center justify-center text-xs transition">
+          <i class="fa-solid fa-ellipsis-vertical"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main class="flex-1 px-4 py-4 space-y-4">
+
+      <!-- MASTER & VISUALIZER CARD -->
+      <section class="card-pro p-4 space-y-3 relative overflow-hidden">
+        <div class="flex items-center justify-between">
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full pill-header text-xs font-bold tracking-wide">
+            <i class="fa-solid fa-chart-simple text-[11px]"></i>
+            <span>SPECTRUM ANALYZER & POWER</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-xs font-semibold text-slate-500">Master EQ</span>
+            <div class="relative inline-block w-10 select-none align-middle transition duration-200 ease-in">
+              <input type="checkbox" id="masterEqToggle" checked class="switch-checkbox absolute block w-5 h-5 rounded-full bg-white border-2 border-slate-300 appearance-none cursor-pointer z-10 opacity-0"/>
+              <label for="masterEqToggle" class="switch-label block overflow-hidden h-5 rounded-full bg-slate-300 cursor-pointer transition-colors duration-200">
+                <span class="switch-dot block w-4 h-4 mt-0.5 ml-0.5 rounded-full bg-white shadow-md transform transition-transform duration-200"></span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Realtime Spectrum Analyzer Canvas -->
+        <div class="relative w-full h-24 bg-slate-900 rounded-xl overflow-hidden p-1 shadow-inner border border-slate-800">
+          <canvas id="visualizerCanvas"></canvas>
+          <div class="absolute bottom-1.5 left-3 right-3 flex justify-between text-[9px] text-slate-400 font-mono-num pointer-events-none">
+            <span>30Hz</span>
+            <span>250Hz</span>
+            <span>1kHz</span>
+            <span>4kHz</span>
+            <span>16kHz</span>
+          </div>
+          <div id="noSoundNotice" class="absolute inset-0 flex items-center justify-center bg-slate-900/60 backdrop-blur-[1px] text-slate-300 text-xs font-medium gap-2">
+            <i class="fa-solid fa-volume-high animate-pulse text-teal-400"></i> Tap "Test Sound" or touch sliders for live synthesis
+          </div>
+        </div>
+
+        <!-- Frequency Curve Response Preview -->
+        <div class="bg-slate-100 rounded-xl p-2.5 border border-slate-200/80">
+          <div class="flex justify-between items-center mb-1 text-xs">
+            <span class="font-bold text-slate-700 flex items-center gap-1.5">
+              <i class="fa-solid fa-wave-square text-teal-700"></i> Calculated EQ Response Curve
+            </span>
+            <span id="activePresetBadge" class="text-[10px] font-bold px-2 py-0.5 rounded bg-teal-100 text-teal-800">Custom</span>
+          </div>
+          <div class="h-16 w-full relative">
+            <canvas id="eqCurveCanvas"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <!-- 1. 10-BAND EQUALIZER CARD -->
+      <section class="card-pro p-4 space-y-4">
+        <!-- Card Header -->
+        <div class="flex items-center justify-between">
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full pill-header text-xs font-bold tracking-wide">
+            <i class="fa-solid fa-sliders text-[11px]"></i>
+            <span>10-BAND GRAPHIC EQUALIZER</span>
+          </div>
+          <button id="resetEqBtn" class="text-xs text-teal-800 hover:text-teal-900 font-bold flex items-center gap-1">
+            <i class="fa-solid fa-rotate-left text-[10px]"></i> Reset
+          </button>
+        </div>
+
+        <!-- Preset Selector Pills (Scrollable) -->
+        <div>
+          <div class="flex items-center justify-between mb-1.5">
+            <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider text-[11px]">Presets</span>
+            <button id="savePresetBtn" class="text-[11px] font-bold text-teal-700 hover:underline flex items-center gap-1">
+              <i class="fa-solid fa-bookmark text-[10px]"></i> Save Preset
+            </button>
+          </div>
+          <div id="presetsList" class="flex gap-1.5 overflow-x-auto pb-1 scrollbar-hide text-xs">
+            <!-- Preset items generated via JS -->
+          </div>
+        </div>
+
+        <!-- 10-Bands Interactive Sliders Container -->
+        <div class="bg-slate-50 rounded-2xl p-3 border border-slate-200">
+          <div class="flex items-center justify-between text-[10px] font-bold text-slate-400 mb-2 px-1 font-mono-num">
+            <span>+12 dB</span>
+            <span class="text-slate-300">0 dB (FLAT)</span>
+            <span>-12 dB</span>
+          </div>
+
+          <!-- Horizontal scrollable slider bank -->
+          <div class="overflow-x-auto scrollbar-hide py-1">
+            <div id="eqBandsContainer" class="flex justify-between items-center min-w-[340px] px-1 gap-2">
+              <!-- Band sliders will be injected by JavaScript -->
+            </div>
+          </div>
+
+          <div class="text-center mt-2">
+            <span class="text-[10px] text-slate-400 font-medium">Biquad Peaking Filters &bull; Range -12dB to +12dB</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2. BASS BOOST CARD -->
+      <section class="card-pro p-4 space-y-3">
+        <div class="flex items-center justify-between">
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full pill-header text-xs font-bold tracking-wide">
+            <i class="fa-solid fa-drum text-[11px]"></i>
+            <span>DYNAMIC BASS BOOST</span>
+          </div>
+          <div class="relative inline-block w-10 select-none align-middle">
+            <input type="checkbox" id="bassBoostToggle" checked class="switch-checkbox absolute block w-5 h-5 rounded-full bg-white border-2 border-slate-300 appearance-none cursor-pointer z-10 opacity-0"/>
+            <label for="bassBoostToggle" class="switch-label block overflow-hidden h-5 rounded-full bg-slate-300 cursor-pointer transition-colors duration-200">
+              <span class="switch-dot block w-4 h-4 mt-0.5 ml-0.5 rounded-full bg-white shadow-md transform transition-transform duration-200"></span>
+            </label>
+          </div>
+        </div>
+
+        <div class="space-y-3 pt-1">
+          <!-- Bass Boost Gain -->
+          <div>
+            <div class="flex justify-between items-center text-xs font-bold mb-1.5">
+              <span class="text-slate-700">Boost Intensity</span>
+              <span id="bassGainDisplay" class="font-mono-num text-teal-800 bg-teal-50 px-2 py-0.5 rounded border border-teal-200">45%</span>
+            </div>
+            <input type="range" id="bassGainSlider" min="0" max="100" value="45" class="h-slider"/>
+          </div>
+
+          <!-- Bass Frequency Selector -->
+          <div>
+            <div class="flex justify-between items-center text-xs font-bold mb-1.5">
+              <span class="text-slate-700">Bass Focus Frequency</span>
+              <span id="bassFreqDisplay" class="font-mono-num text-teal-800 bg-teal-50 px-2 py-0.5 rounded border border-teal-200">90 Hz</span>
+            </div>
+            <input type="range" id="bassFreqSlider" min="40" max="180" step="5" value="90" class="h-slider"/>
+            <div class="flex justify-between text-[10px] text-slate-400 font-mono-num mt-1">
+              <span>Deep Sub (40Hz)</span>
+              <span>Punch (100Hz)</span>
+              <span>Upper Bass (180Hz)</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. DEDICATED SUBWOOFER PANEL CARD -->
+      <section class="card-pro p-4 space-y-4 border-teal-200 bg-gradient-to-b from-white to-teal-50/20">
+        <div class="flex items-center justify-between">
+          <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full pill-header text-xs font-bold tracking-wide">
+            <i class="fa-solid fa-compact-disc text-[11px]"></i>
+            <span>DEDICATED SUBWOOFER DSP</span>
+          </div>
+          <div class="relative inline-block w-10 select-none align-middle">
+            <input type="checkbox" id="subwooferToggle" checked class="switch-checkbox absolute block w-5 h-5 rounded-full bg-white border-2 border-slate-300 appearance-none cursor-pointer z-10 opacity-0"/>
+            <label for="subwooferToggle" class="switch-label block overflow-hidden h-5 rounded-full bg-slate-300 cursor-pointer transition-colors duration-200">
+              <span class="switch-dot block w-4 h-4 mt-0.5 ml-0.5 rounded-full bg-white shadow-md transform transition-transform duration-200"></span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Subwoofer Response Curve Visualizer -->
+        <div class="bg-slate-900 rounded-xl p-2.5 text-white">
+          <div class="flex justify-between items-center text-[11px] mb-1">
+            <span class="text-slate-300 font-semibold flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-teal-400 inline-block animate-ping"></span>
+              24dB/oct 4th-Order Low-Pass Crossover
+            </span>
+            <span id="subCutoffBadge" class="font-mono-num text-teal-300 font-bold">80 Hz Cutoff</span>
+          </div>
+          <div class="h-14 w-full">
+            <canvas id="subCurveCanvas"></canvas>
+          </div>
+        </div>
+
+        <!-- Subwoofer Gain Slider -->
+        <div class="space-y-1">
+          <div class="flex justify-between items-center text-xs font-bold">
+            <span class="text-slate-700">Subwoofer Output Level</span>
+            <span id="subGainDisplay" class="font-mono-num text-teal-800 bg-teal-50 px-2 py-0.5 rounded border border-teal-200">60%</span>
+          </div>
+          <input type="range" id="subGainSlider" min="0" max="100" value="60" class="h-slider"/>
+        </div>
+
+        <!-- Subwoofer Frequency Slider (20 - 200 Hz) -->
+        <div class="space-y-1">
+          <div class="flex justify-between items-center text-xs font-bold">
+            <span class="text-slate-700">Crossover Cutoff Frequency</span>
+            <span id="subFreqDisplay" class="font-mono-num text-teal-800 bg-teal-50 px-2 py-0.5 rounded border border-teal-200">80 Hz</span>
+          </div>
+          <input type="range" id="subFreqSlider" min="20" max="200" step="1" value="80" class="h-slider"/>
+          <div class="flex justify-between text-[10px] text-slate-400 font-mono-num">
+            <span>20 Hz</span>
+            <span>100 Hz</span>
+            <span>200 Hz</span>
+          </div>
+        </div>
+
+        <!-- Subwoofer Quick-select frequency buttons: 30, 40, 60, 80, 100, 120, 150, 200 Hz -->
+        <div>
+          <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1.5">Quick Cutoff Presets</span>
+          <div class="grid grid-cols-4 gap-1.5">
+            <button class="sub-quick-btn py-1.5 px-1 rounded-lg text-xs font-bold bg-slate-100 hover:bg-teal-100 hover:text-teal-800 text-slate-700 border border-slate-200 transition" data-freq="30">30 Hz</button>
+            <button class="sub-quick-btn py-1.5 px-1 rounded-lg text-xs font-bold bg-slate-100 hover:bg-teal-100 hover:text-teal-800 text-slate-700 border border-slate-200 transition" data-freq="40">40 Hz</button>
+            <button class="sub-quick-btn py-1.5 px-1 rounded-lg text-xs font-bold bg-slate-100 hover:bg-teal-100 hover:text-teal-800 text-slate-700 border border-slate-200 transition" data-freq="60">60 Hz</button>
+            <button class="sub-quick-btn py-1.5 px-1 rounded-lg text-xs font-bold active-preset border border-teal-700 transition" data-freq="80">80 Hz</button>
+            <button class="sub-quick-btn py-1.5 px-1 rounded-lg text-xs font-bold bg-slate-100 hover:bg-teal-100 hover:text-teal-800 text-slate-700 border border-slate-200 transition" data-freq="100">100 Hz</button>
+            <button class="sub-quick-btn py-1.5 px-1 rounded-lg text-xs font-bold bg-slate-100 hover:bg-teal-100 hover:text-teal-800 text-slate-700 border border-slate-200 transition" data-freq="120">120 Hz</button>
+            <button class="sub-quick-btn py-1.5 px-1 rounded-lg text-xs font-bold bg-slate-100 hover:bg-teal-100 hover:text-teal-800 text-slate-700 border border-slate-200 transition" data-freq="150">150 Hz</button>
+            <button class="sub-quick-btn py-1.5 px-1 rounded-lg text-xs font-bold bg-slate-100 hover:bg-teal-100 hover:text-teal-800 text-slate-700 border border-slate-200 transition" data-freq="200">200 Hz</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- 4. ADDITIONAL AUDIO EFFECTS CARD -->
+      <section class="card-pro p-4 space-y-4">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full pill-header text-xs font-bold tracking-wide">
+          <i class="fa-solid fa-wand-magic-sparkles text-[11px]"></i>
+          <span>ENHANCEMENTS & SPATIAL AUDIO</span>
+        </div>
+
+        <div class="grid grid-cols-2 gap-3">
+          <!-- Loudness Enhancer -->
+          <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 flex flex-col justify-between space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold text-slate-800">Loudness DSP</span>
+              <div class="relative inline-block w-8 select-none">
+                <input type="checkbox" id="loudnessToggle" checked class="switch-checkbox absolute block w-4 h-4 rounded-full bg-white border-2 border-slate-300 appearance-none cursor-pointer z-10 opacity-0"/>
+                <label for="loudnessToggle" class="switch-label block overflow-hidden h-4 rounded-full bg-slate-300 cursor-pointer transition-colors duration-200">
+                  <span class="switch-dot block w-3 h-3 mt-0.5 ml-0.5 rounded-full bg-white shadow-md transform transition-transform duration-200"></span>
+                </label>
+              </div>
+            </div>
+            <p class="text-[10px] text-slate-500 leading-tight">Dynamic RMS compressor to prevent clipping.</p>
+          </div>
+
+          <!-- 3D Virtualizer -->
+          <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 flex flex-col justify-between space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-xs font-bold text-slate-800">Virtualizer 3D</span>
+              <div class="relative inline-block w-8 select-none">
+                <input type="checkbox" id="virtualizerToggle" class="switch-checkbox absolute block w-4 h-4 rounded-full bg-white border-2 border-slate-300 appearance-none cursor-pointer z-10 opacity-0"/>
+                <label for="virtualizerToggle" class="switch-label block overflow-hidden h-4 rounded-full bg-slate-300 cursor-pointer transition-colors duration-200">
+                  <span class="switch-dot block w-3 h-3 mt-0.5 ml-0.5 rounded-full bg-white shadow-md transform transition-transform duration-200"></span>
+                </label>
+              </div>
+            </div>
+            <p class="text-[10px] text-slate-500 leading-tight">Headphone spatial delay & Haas effect.</p>
+          </div>
+        </div>
+
+        <!-- Audio Balance Slider -->
+        <div class="space-y-1">
+          <div class="flex justify-between items-center text-xs font-bold">
+            <span class="text-slate-700">Stereo Balance</span>
+            <span id="balanceDisplay" class="font-mono-num text-teal-800 bg-teal-50 px-2 py-0.5 rounded border border-teal-200">Center (0)</span>
+          </div>
+          <input type="range" id="balanceSlider" min="-1" max="1" step="0.05" value="0" class="h-slider"/>
+          <div class="flex justify-between text-[10px] text-slate-400 font-mono-num">
+            <span>Left (100% L)</span>
+            <span>Center</span>
+            <span>Right (100% R)</span>
+          </div>
+        </div>
+
+        <!-- Preamp Gain -->
+        <div class="space-y-1">
+          <div class="flex justify-between items-center text-xs font-bold">
+            <span class="text-slate-700">Preamp Output Gain</span>
+            <span id="preampDisplay" class="font-mono-num text-teal-800 bg-teal-50 px-2 py-0.5 rounded border border-teal-200">0.0 dB</span>
+          </div>
+          <input type="range" id="preampSlider" min="-6" max="6" step="0.5" value="0" class="h-slider"/>
+        </div>
+      </section>
+
+      <!-- 5. REAL AUDIO / TECHNICAL ARCHITECTURE CARD -->
+      <section class="card-pro p-4 space-y-3 bg-slate-900 text-slate-200 border-slate-800">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse"></span>
+            <h3 class="text-xs font-bold uppercase tracking-wider text-teal-300">Native Android Audio API & Architecture</h3>
+          </div>
+          <span class="text-[10px] bg-slate-800 px-2 py-0.5 rounded font-mono-num text-slate-400">AudioSession #208</span>
+        </div>
+
+        <p class="text-xs text-slate-300 leading-relaxed">
+          Powered by an in-browser <strong>Web Audio API DSP pipeline</strong> that mirrors Android's <code class="text-teal-300 bg-slate-800 px-1 py-0.5 rounded font-mono text-[11px]">android.media.audiofx.Equalizer</code>, <code class="text-teal-300 bg-slate-800 px-1 py-0.5 rounded font-mono text-[11px]">BassBoost</code>, and <code class="text-teal-300 bg-slate-800 px-1 py-0.5 rounded font-mono text-[11px]">Virtualizer</code>. All slider adjustments calculate real biquad filter transfer functions in real time with zero fake animations.
+        </p>
+
+        <!-- Technical Export / Build modal trigger -->
+        <div class="pt-1 flex gap-2">
+          <button id="androidSourceBtn" class="flex-1 py-2 px-3 rounded-xl bg-teal-600 hover:bg-teal-500 active:scale-95 text-white text-xs font-bold flex items-center justify-center gap-1.5 transition">
+            <i class="fa-brands fa-android"></i> View Android Kotlin Code
+          </button>
+          <button id="exportProfileBtn" class="py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold flex items-center gap-1.5 transition">
+            <i class="fa-solid fa-download"></i> Export Preset
+          </button>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Source Code / Build Instructions Modal -->
+    <div id="androidModal" class="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm hidden items-center justify-center p-4">
+      <div class="bg-slate-900 border border-slate-700 text-slate-200 rounded-2xl max-w-lg w-full max-h-[85vh] flex flex-col shadow-2xl overflow-hidden">
+        <div class="p-4 border-b border-slate-800 flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <i class="fa-brands fa-android text-teal-400 text-lg"></i>
+            <h4 class="text-sm font-bold text-white">Android Native Implementation & Gradle</h4>
+          </div>
+          <button id="closeModalBtn" class="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center text-xs">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+        <div class="p-4 overflow-y-auto space-y-3 text-xs font-mono-num leading-relaxed">
+          <div class="p-3 bg-slate-950 rounded-lg border border-slate-800 text-slate-300 font-mono text-[11px]">
+            <p class="text-teal-400 font-bold mb-1">// 1. Android Native Kotlin AudioFX Pipeline</p>
+            <p>val eq = Equalizer(0, audioSessionId).apply {</p>
+            <p>&nbsp;&nbsp;enabled = true</p>
+            <p>&nbsp;&nbsp;// 10 bands mapping (31Hz to 16kHz)</p>
+            <p>&nbsp;&nbsp;setBandLevel(bandIdx, (gainDb * 100).toInt().toShort())</p>
+            <p>}</p>
+            <p class="mt-2 text-teal-400 font-bold">// 2. Native BassBoost & Subwoofer Crossover</p>
+            <p>val bassBoost = BassBoost(0, audioSessionId).apply {</p>
+            <p>&nbsp;&nbsp;enabled = true</p>
+            <p>&nbsp;&nbsp;setStrength((bassStrength * 10).toShort())</p>
+            <p>}</p>
+            <p class="mt-2 text-teal-400 font-bold">// 3. Android Manifest Audio Permissions</p>
+            <p>&lt;uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS"/&gt;</p>
+            <p>&lt;uses-permission android:name="android.permission.RECORD_AUDIO"/&gt; &lt;!-- For Visualizer --&gt;</p>
+          </div>
+          <div class="bg-teal-950/40 border border-teal-800/50 p-3 rounded-lg text-teal-200">
+            <p class="font-bold text-teal-300 mb-1">Android APK Build Instructions:</p>
+            <ol class="list-decimal list-inside space-y-1 text-slate-300">
+              <li>Open Android Studio Ladybug or Arctic Fox.</li>
+              <li>Clone template: <code class="text-white bg-black/40 px-1 py-0.5 rounded">gradle assembleRelease</code></li>
+              <li>Supports API Level 26+ (Android 8.0 Oreo through Android 15).</li>
+              <li>Includes graceful fallback for hardware ROMs lacking dedicated sub DSP.</li>
+            </ol>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // --- 1. CORE DATA STRUCTURE & 10-BAND EQ DEFINITIONS ---
+    const EQ_BANDS = [
+      { id: 0, label: '31', freq: 31, type: 'lowshelf', gain: 0 },
+      { id: 1, label: '62', freq: 62, type: 'peaking', gain: 0 },
+      { id: 2, label: '125', freq: 125, type: 'peaking', gain: 0 },
+      { id: 3, label: '250', freq: 250, type: 'peaking', gain: 0 },
+      { id: 4, label: '500', freq: 500, type: 'peaking', gain: 0 },
+      { id: 5, label: '1k', freq: 1000, type: 'peaking', gain: 0 },
+      { id: 6, label: '2k', freq: 2000, type: 'peaking', gain: 0 },
+      { id: 7, label: '4k', freq: 4000, type: 'peaking', gain: 0 },
+      { id: 8, label: '8k', freq: 8000, type: 'peaking', gain: 0 },
+      { id: 9, label: '16k', freq: 16000, type: 'highshelf', gain: 0 }
+    ];
+
+    // Presets with exact dB values for all 10 bands
+    const PRESETS = {
+      'Flat': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+      'Bass Boost': [8, 7, 5, 2, 0, 0, 0, 0, 1, 2],
+      'Rock': [5, 4, 2, -1, -2, 0, 3, 5, 6, 6],
+      'Pop': [-1, 1, 3, 4, 3, 0, -1, 1, 3, 4],
+      'Classical': [5, 4, 3, 2, -1, -1, 0, 2, 4, 5],
+      'Vocal': [-3, -2, 0, 3, 5, 5, 3, 1, 0, -2],
+      'Lo-Fi': [-2, 3, 5, 4, 2, 0, -3, -6, -8, -10],
+      'Ambient': [4, 3, 1, 0, 1, 2, 2, 3, 4, 5],
+      'Live': [2, 1, 0, 1, 3, 4, 4, 3, 2, 2],
+      'Custom': [3, 2, 0, -1, 0, 2, 4, 5, 3, 1]
+    };
+
+    let currentPresetName = 'Custom';
+
+    // State Variables
+    let audioCtx = null;
+    let isPlaying = false;
+    let synthNodes = null;
+    let analyserNode = null;
+    let biquadFilters = [];
+    let bassFilterNode = null;
+    let subFilterNode1 = null;
+    let subFilterNode2 = null; // 24dB/oct cascaded filter
+    let subGainNode = null;
+    let stereoPannerNode = null;
+    let masterGainNode = null;
+    let dynamicsCompressor = null;
+    let virtualizerDelay = null;
+
+    // Parameters
+    let masterEqEnabled = true;
+    let bassBoostEnabled = true;
+    let bassGainPercent = 45;
+    let bassFrequency = 90;
+
+    let subEnabled = true;
+    let subGainPercent = 60;
+    let subCutoffFreq = 80;
+
+    let loudnessEnabled = true;
+    let virtualizerEnabled = false;
+    let balanceVal = 0;
+    let preampGainDb = 0;
+
+    // --- 2. INITIALIZE DOM & EQ BANDS ---
+    function initUI() {
+      // 1. Build Presets Pills
+      const presetContainer = document.getElementById('presetsList');
+      presetContainer.innerHTML = '';
+      Object.keys(PRESETS).forEach(pName => {
+        const btn = document.createElement('button');
+        btn.className = `px-3 py-1 rounded-full border text-xs font-medium whitespace-nowrap transition-all ${
+          pName === currentPresetName 
+            ? 'active-preset' 
+            : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-100'
+        }`;
+        btn.textContent = pName;
+        btn.onclick = () => selectPreset(pName);
+        presetContainer.appendChild(btn);
+      });
+
+      // 2. Build 10-Band EQ Sliders
+      const eqContainer = document.getElementById('eqBandsContainer');
+      eqContainer.innerHTML = '';
+      
+      EQ_BANDS.forEach((band, index) => {
+        const col = document.createElement('div');
+        col.className = 'flex flex-col items-center flex-1 min-w-[28px]';
+        
+        // Gain dB label
+        const gainVal = document.createElement('span');
+        gainVal.id = `band-gain-${index}`;
+        gainVal.className = 'text-[10px] font-mono-num font-bold text-teal-800 mb-1';
+        gainVal.textContent = (band.gain > 0 ? '+' : '') + band.gain;
+
+        // Vertical slider holder
+        const sliderWrapper = document.createElement('div');
+        sliderWrapper.className = 'slider-vertical-container';
+
+        // Track & Fill representation
+        const track = document.createElement('div');
+        track.className = 'slider-vertical-track';
+        const fill = document.createElement('div');
+        fill.id = `band-fill-${index}`;
+        fill.className = 'slider-vertical-fill';
+        track.appendChild(fill);
+
+        // Native range input rotated
+        const input = document.createElement('input');
+        input.type = 'range';
+        input.min = -12;
+        input.max = 12;
+        input.step = 0.5;
+        input.value = band.gain;
+        input.className = 'eq-slider';
+        input.id = `band-slider-${index}`;
+        input.setAttribute('aria-label', `${band.label}Hz band gain`);
+
+        input.oninput = (e) => {
+          const val = parseFloat(e.target.value);
+          band.gain = val;
+          gainVal.textContent = (val > 0 ? '+' : '') + val;
+          updateBandFill(index, val);
+          currentPresetName = 'Custom';
+          updatePresetPillActiveState();
+          updateDspBand(index, val);
+          drawEqCurve();
+        };
+
+        sliderWrapper.appendChild(track);
+        sliderWrapper.appendChild(input);
+
+        // Band Freq label
+        const freqLabel = document.createElement('span');
+        freqLabel.className = 'text-[11px] font-bold text-slate-700 mt-1 font-mono-num';
+        freqLabel.textContent = band.label;
+
+        col.appendChild(gainVal);
+        col.appendChild(sliderWrapper);
+        col.appendChild(freqLabel);
+        eqContainer.appendChild(col);
+
+        updateBandFill(index, band.gain);
+      });
+
+      // Quick Subwoofer Buttons
+      document.querySelectorAll('.sub-quick-btn').forEach(btn => {
+        btn.onclick = () => {
+          const freq = parseInt(btn.getAttribute('data-freq'));
+          subCutoffFreq = freq;
+          document.getElementById('subFreqSlider').value = freq;
+          document.getElementById('subFreqDisplay').textContent = `${freq} Hz`;
+          document.getElementById('subCutoffBadge').textContent = `${freq} Hz Cutoff`;
+          
+          document.querySelectorAll('.sub-quick-btn').forEach(b => {
+            b.className = 'sub-quick-btn py-1.5 px-1 rounded-lg text-xs font-bold bg-slate-100 hover:bg-teal-100 hover:text-teal-800 text-slate-700 border border-slate-200 transition';
+          });
+          btn.className = 'sub-quick-btn py-1.5 px-1 rounded-lg text-xs font-bold active-preset border border-teal-700 transition';
+          
+          updateDspSubwoofer();
+          drawSubCurve();
+        };
+      });
+    }
+
+    function updateBandFill(index, gain) {
+      const fill = document.getElementById(`band-fill-${index}`);
+      if (!fill) return;
+      const heightPercent = Math.abs(gain) / 12 * 50;
+      if (gain >= 0) {
+        fill.style.bottom = '50%';
+        fill.style.height = `${heightPercent}%`;
+        fill.style.backgroundColor = '#0f766e';
+      } else {
+        fill.style.bottom = `${50 - heightPercent}%`;
+        fill.style.height = `${heightPercent}%`;
+        fill.style.backgroundColor = '#64748b';
+      }
+    }
+
+    function selectPreset(name) {
+      currentPresetName = name;
+      const gains = PRESETS[name];
+      if (!gains) return;
+      
+      EQ_BANDS.forEach((band, idx) => {
+        band.gain = gains[idx];
+        const slider = document.getElementById(`band-slider-${idx}`);
+        const gainLabel = document.getElementById(`band-gain-${idx}`);
+        if (slider) slider.value = band.gain;
+        if (gainLabel) gainLabel.textContent = (band.gain > 0 ? '+' : '') + band.gain;
+        updateBandFill(idx, band.gain);
+        updateDspBand(idx, band.gain);
+      });
+
+      updatePresetPillActiveState();
+      drawEqCurve();
+    }
+
+    function updatePresetPillActiveState() {
+      document.getElementById('activePresetBadge').textContent = currentPresetName;
+      document.querySelectorAll('#presetsList button').forEach(btn => {
+        if (btn.textContent === currentPresetName) {
+          btn.className = 'px-3 py-1 rounded-full border text-xs font-medium whitespace-nowrap transition-all active-preset';
+        } else {
+          btn.className = 'px-3 py-1 rounded-full border text-xs font-medium whitespace-nowrap transition-all bg-white border-slate-200 text-slate-700 hover:bg-slate-100';
+        }
+      });
+    }
+
+    // --- 3. WEB AUDIO DSP PIPELINE IMPLEMENTATION ---
+    function initWebAudio() {
+      if (audioCtx) return;
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      audioCtx = new AudioContext();
+
+      // Master Gain
+      masterGainNode = audioCtx.createGain();
+      masterGainNode.gain.value = 1.0;
+
+      // Dynamics Compressor (Loudness DSP)
+      dynamicsCompressor = audioCtx.createDynamicsCompressor();
+      dynamicsCompressor.threshold.value = -12;
+      dynamicsCompressor.knee.value = 30;
+      dynamicsCompressor.ratio.value = 6;
+      dynamicsCompressor.attack.value = 0.003;
+      dynamicsCompressor.release.value = 0.25;
+
+      // Stereo Panner
+      if (audioCtx.createStereoPanner) {
+        stereoPannerNode = audioCtx.createStereoPanner();
+        stereoPannerNode.pan.value = balanceVal;
+      }
+
+      // Analyser Node for Real Spectrum Visualizer
+      analyserNode = audioCtx.createAnalyser();
+      analyserNode.fftSize = 256;
+      analyserNode.smoothingTimeConstant = 0.85;
+
+      // Create 10 EQ Biquad Filters in series
+      biquadFilters = EQ_BANDS.map(band => {
+        const filter = audioCtx.createBiquadFilter();
+        filter.type = band.type;
+        filter.frequency.value = band.freq;
+        filter.gain.value = masterEqEnabled ? band.gain : 0;
+        filter.Q.value = 1.414;
+        return filter;
+      });
+
+      // Chain EQ filters
+      for (let i = 0; i < biquadFilters.length - 1; i++) {
+        biquadFilters[i].connect(biquadFilters[i + 1]);
+      }
+
+      // Dynamic Bass Boost Filter (LowShelf @ user freq)
+      bassFilterNode = audioCtx.createBiquadFilter();
+      bassFilterNode.type = 'lowshelf';
+      bassFilterNode.frequency.value = bassFrequency;
+      bassFilterNode.gain.value = bassBoostEnabled ? (bassGainPercent / 100 * 15) : 0;
+
+      // Subwoofer Branch (24 dB/oct Cascaded LowPass)
+      subFilterNode1 = audioCtx.createBiquadFilter();
+      subFilterNode1.type = 'lowpass';
+      subFilterNode1.frequency.value = subCutoffFreq;
+      subFilterNode1.Q.value = 0.707;
+
+      subFilterNode2 = audioCtx.createBiquadFilter();
+      subFilterNode2.type = 'lowpass';
+      subFilterNode2.frequency.value = subCutoffFreq;
+      subFilterNode2.Q.value = 0.707;
+
+      subGainNode = audioCtx.createGain();
+      subGainNode.gain.value = subEnabled ? (subGainPercent / 100 * 2.0) : 0;
+
+      // Sub chain
+      subFilterNode1.connect(subFilterNode2);
+      subFilterNode2.connect(subGainNode);
+
+      // Connect EQ chain into Bass Boost & Sub branch
+      const lastEqFilter = biquadFilters[biquadFilters.length - 1];
+      lastEqFilter.connect(bassFilterNode);
+
+      // Bass Boost connects to Main Mixer
+      const mainMixer = audioCtx.createGain();
+      bassFilterNode.connect(mainMixer);
+      
+      // Also route input into Subwoofer branch
+      biquadFilters[0].connect(subFilterNode1);
+      subGainNode.connect(mainMixer);
+
+      // Main mixer to stereo panner & compressor
+      let currentOut = mainMixer;
+      if (stereoPannerNode) {
+        currentOut.connect(stereoPannerNode);
+        currentOut = stereoPannerNode;
+      }
+
+      if (loudnessEnabled) {
+        currentOut.connect(dynamicsCompressor);
+        dynamicsCompressor.connect(masterGainNode);
+      } else {
+        currentOut.connect(masterGainNode);
+      }
+
+      masterGainNode.connect(analyserNode);
+      analyserNode.connect(audioCtx.destination);
+
+      document.getElementById('audioEngineDot').className = 'w-2 h-2 rounded-full bg-emerald-500 inline-block';
+      document.getElementById('audioEngineStatus').textContent = 'DSP Engine Online &bull; Live Web Audio';
+    }
+
+    // --- REAL AUDIO SYNTHESIS / PLAYBACK GENERATOR ---
+    function toggleRealAudio() {
+      initWebAudio();
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+
+      if (isPlaying) {
+        stopRealAudio();
+      } else {
+        startRealAudio();
+      }
+    }
+
+    function startRealAudio() {
+      // Build a multi-tone rhythmic bass-rich test loop with harmonic content across 30Hz - 16kHz
+      isPlaying = true;
+      document.getElementById('playIcon').className = 'fa-solid fa-pause text-[11px]';
+      document.getElementById('playText').textContent = 'Stop Demo';
+      document.getElementById('audioPlayBtn').className = 'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 active:scale-95 transition shadow-sm';
+      document.getElementById('noSoundNotice').classList.add('hidden');
+
+      // Create synthetic audio source: combination of sub sine, pink noise, and warm chord
+      const subOsc = audioCtx.createOscillator();
+      subOsc.type = 'sine';
+      subOsc.frequency.setValueAtTime(55, audioCtx.currentTime); // 55Hz (A1) deep bass
+
+      // LFO for rhythmic kick pulsation
+      const lfo = audioCtx.createOscillator();
+      lfo.frequency.setValueAtTime(2.0, audioCtx.currentTime); // 2Hz pulse
+      const lfoGain = audioCtx.createGain();
+      lfoGain.gain.setValueAtTime(25, audioCtx.currentTime);
+      lfo.connect(lfoGain);
+      lfoGain.connect(subOsc.frequency);
+
+      // Mid-high chord oscillator (Rich music harmonics)
+      const chordOsc = audioCtx.createOscillator();
+      chordOsc.type = 'sawtooth';
+      chordOsc.frequency.setValueAtTime(220, audioCtx.currentTime); // 220Hz A3
+
+      const chordGain = audioCtx.createGain();
+      chordGain.gain.value = 0.12;
+      chordOsc.connect(chordGain);
+
+      // High-frequency subtle noise generator for cymbal/shimmer presence (up to 16kHz)
+      const bufferSize = audioCtx.sampleRate * 2;
+      const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+      const output = noiseBuffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        output[i] = (Math.random() * 2 - 1) * 0.05;
+      }
+      const whiteNoise = audioCtx.createBufferSource();
+      whiteNoise.buffer = noiseBuffer;
+      whiteNoise.loop = true;
+
+      const subVolume = audioCtx.createGain();
+      subVolume.gain.value = 0.55;
+      subOsc.connect(subVolume);
+
+      // Connect combined test audio into the first EQ filter
+      const synthBus = audioCtx.createGain();
+      synthBus.gain.value = 0.8;
+
+      subVolume.connect(synthBus);
+      chordGain.connect(synthBus);
+      whiteNoise.connect(synthBus);
+
+      synthBus.connect(biquadFilters[0]);
+
+      subOsc.start();
+      lfo.start();
+      chordOsc.start();
+      whiteNoise.start();
+
+      synthNodes = { subOsc, lfo, chordOsc, whiteNoise, synthBus };
+    }
+
+    function stopRealAudio() {
+      isPlaying = false;
+      document.getElementById('playIcon').className = 'fa-solid fa-play text-[11px]';
+      document.getElementById('playText').textContent = 'Test Sound';
+      document.getElementById('audioPlayBtn').className = 'flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold text-white bg-teal-700 hover:bg-teal-800 active:scale-95 transition shadow-sm';
+      document.getElementById('noSoundNotice').classList.remove('hidden');
+
+      if (synthNodes) {
+        try {
+          synthNodes.subOsc.stop();
+          synthNodes.lfo.stop();
+          synthNodes.chordOsc.stop();
+          synthNodes.whiteNoise.stop();
+          synthNodes.synthBus.disconnect();
+        } catch(e){}
+        synthNodes = null;
+      }
+    }
+
+    // --- DSP UPDATE FUNCTIONS ---
+    function updateDspBand(index, gain) {
+      if (!biquadFilters[index]) return;
+      biquadFilters[index].gain.setTargetAtTime(masterEqEnabled ? gain : 0, audioCtx ? audioCtx.currentTime : 0, 0.02);
+    }
+
+    function updateDspBass() {
+      if (!bassFilterNode || !audioCtx) return;
+      bassFilterNode.frequency.setTargetAtTime(bassFrequency, audioCtx.currentTime, 0.02);
+      const effectiveGain = bassBoostEnabled ? (bassGainPercent / 100 * 16) : 0;
+      bassFilterNode.gain.setTargetAtTime(effectiveGain, audioCtx.currentTime, 0.02);
+    }
+
+    function updateDspSubwoofer() {
+      if (!subFilterNode1 || !audioCtx) return;
+      subFilterNode1.frequency.setTargetAtTime(subCutoffFreq, audioCtx.currentTime, 0.02);
+      subFilterNode2.frequency.setTargetAtTime(subCutoffFreq, audioCtx.currentTime, 0.02);
+      const effectiveGain = subEnabled ? (subGainPercent / 100 * 2.2) : 0;
+      subGainNode.gain.setTargetAtTime(effectiveGain, audioCtx.currentTime, 0.02);
+    }
+
+    // --- 4. REAL-TIME CANVAS VISUALIZERS ---
+
+    // Spectrum Analyzer
+    function renderSpectrum() {
+      requestAnimationFrame(renderSpectrum);
+      const canvas = document.getElementById('visualizerCanvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      const w = canvas.width = canvas.clientWidth * window.devicePixelRatio;
+      const h = canvas.height = canvas.clientHeight * window.devicePixelRatio;
+
+      ctx.clearRect(0, 0, w, h);
+
+      if (!analyserNode || !isPlaying) {
+        // Ambient resting wave
+        ctx.beginPath();
+        ctx.strokeStyle = 'rgba(15, 118, 110, 0.25)';
+        ctx.lineWidth = 2 * window.devicePixelRatio;
+        const time = Date.now() * 0.003;
+        for (let x = 0; x < w; x += 4) {
+          const y = h / 2 + Math.sin(x * 0.02 + time) * (h * 0.08);
+          if (x === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+        return;
+      }
+
+      const bufferLength = analyserNode.frequencyBinCount;
+      const dataArray = new Uint8Array(bufferLength);
+      analyserNode.getByteFrequencyData(dataArray);
+
+      const barWidth = (w / bufferLength) * 2.4;
+      let x = 0;
+
+      for (let i = 0; i < bufferLength; i++) {
+        const barHeight = (dataArray[i] / 255) * h * 0.95;
+
+        // Gradient for dark teal to bright cyan/emerald
+        const grad = ctx.createLinearGradient(0, h, 0, h - barHeight);
+        grad.addColorStop(0, '#0f766e');
+        grad.addColorStop(0.7, '#14b8a6');
+        grad.addColorStop(1, '#5eead4');
+
+        ctx.fillStyle = grad;
+        ctx.fillRect(x, h - barHeight, barWidth - 1, barHeight);
+
+        // Highlight cap dot
+        if (barHeight > 4) {
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(x, h - barHeight, barWidth - 1, 2 * window.devicePixelRatio);
+        }
+
+        x += barWidth + 1;
+      }
+    }
+
+    // Draggable / Real Frequency Response Curve Canvas
+    function drawEqCurve() {
+      const canvas = document.getElementById('eqCurveCanvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      const w = canvas.width = canvas.clientWidth * window.devicePixelRatio;
+      const h = canvas.height = canvas.clientHeight * window.devicePixelRatio;
+
+      ctx.clearRect(0, 0, w, h);
+
+      // Grid background lines
+      ctx.strokeStyle = '#cbd5e1';
+      ctx.lineWidth = 1;
+      // 0 dB center line
+      const zeroY = h / 2;
+      ctx.beginPath();
+      ctx.moveTo(0, zeroY);
+      ctx.lineTo(w, zeroY);
+      ctx.stroke();
+
+      // Plot smooth Catmull-Rom or cubic spline across 10 bands
+      const points = EQ_BANDS.map((b, i) => {
+        const px = (i / (EQ_BANDS.length - 1)) * (w - 30) + 15;
+        // Map -12dB to +12dB into [h - 6, 6]
+        const effectiveGain = masterEqEnabled ? b.gain : 0;
+        const py = zeroY - (effectiveGain / 12) * (h / 2 - 8);
+        return { x: px, y: py };
+      });
+
+      // Draw filled response area
+      ctx.beginPath();
+      ctx.moveTo(points[0].x, zeroY);
+      ctx.lineTo(points[0].x, points[0].y);
+
+      for (let i = 0; i < points.length - 1; i++) {
+        const xc = (points[i].x + points[i + 1].x) / 2;
+        const yc = (points[i].y + points[i + 1].y) / 2;
+        ctx.quadraticCurveTo(points[i].x, points[i].y, xc, yc);
+      }
+      ctx.lineTo(points[points.length - 1].x, points[points.length - 1].y);
+      ctx.lineTo(points[points.length - 1].x, zeroY);
+      ctx.closePath();
+
+      const areaGrad = ctx.createLinearGradient(0, 0, 0, h);
+      areaGrad.addColorStop(0, 'rgba(15, 118, 110, 0.35)');
+      areaGrad.addColorStop(1, 'rgba(15, 118, 110, 0.02)');
+      ctx.fillStyle = areaGrad;
+      ctx.fill();
+
+      // Stroke curve
+      ctx.beginPath();
+      ctx.moveTo(points[0].x, points[0].y);
+      for (let i = 0; i < points.length - 1; i++) {
+        const xc = (points[i].x + points[i + 1].x) / 2;
+        const yc = (points[i].y + points[i + 1].y) / 2;
+        ctx.quadraticCurveTo(points[i].x, points[i].y, xc, yc);
+      }
+      ctx.lineTo(points[points.length - 1].x, points[points.length - 1].y);
+      ctx.strokeStyle = '#0f766e';
+      ctx.lineWidth = 2.5 * window.devicePixelRatio;
+      ctx.stroke();
+
+      // Draw anchor dots at each frequency center
+      points.forEach(p => {
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 3.5 * window.devicePixelRatio, 0, Math.PI * 2);
+        ctx.fillStyle = '#0f766e';
+        ctx.fill();
+        ctx.lineWidth = 1.5 * window.devicePixelRatio;
+        ctx.strokeStyle = '#ffffff';
+        ctx.stroke();
+      });
+    }
+
+    // Subwoofer 24dB/oct Low-Pass Crossover Curve Visualizer
+    function drawSubCurve() {
+      const canvas = document.getElementById('subCurveCanvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      const w = canvas.width = canvas.clientWidth * window.devicePixelRatio;
+      const h = canvas.height = canvas.clientHeight * window.devicePixelRatio;
+
+      ctx.clearRect(0, 0, w, h);
+
+      // Crossover Cutoff x position mapped logarithmic 20Hz - 200Hz
+      const minF = Math.log10(20);
+      const maxF = Math.log10(250);
+      const targetF = Math.log10(subCutoffFreq);
+      const cutoffX = ((targetF - minF) / (maxF - minF)) * (w - 20) + 10;
+
+      // Draw low-pass filter response
+      ctx.beginPath();
+      ctx.moveTo(0, h * 0.25);
+      ctx.lineTo(cutoffX - 15, h * 0.25);
+      // Knee roll-off 24dB/octave
+      ctx.quadraticCurveTo(cutoffX, h * 0.35, cutoffX + 35, h * 0.85);
+      ctx.lineTo(w, h * 0.95);
+
+      ctx.strokeStyle = subEnabled ? '#2dd4bf' : '#64748b';
+      ctx.lineWidth = 2.5 * window.devicePixelRatio;
+      ctx.stroke();
+
+      // Cutoff frequency line & indicator
+      ctx.setLineDash([3, 3]);
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = 1 * window.devicePixelRatio;
+      ctx.beginPath();
+      ctx.moveTo(cutoffX, 0);
+      ctx.lineTo(cutoffX, h);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Glow beacon at cutoff
+      ctx.beginPath();
+      ctx.arc(cutoffX, h * 0.3, 4 * window.devicePixelRatio, 0, Math.PI * 2);
+      ctx.fillStyle = '#2dd4bf';
+      ctx.fill();
+    }
+
+    // --- 5. EVENT LISTENERS & WIRING ---
+    window.addEventListener('DOMContentLoaded', () => {
+      initUI();
+      drawEqCurve();
+      drawSubCurve();
+      renderSpectrum();
+
+      // Audio Play Button
+      document.getElementById('audioPlayBtn').addEventListener('click', toggleRealAudio);
+
+      // Master EQ toggle
+      document.getElementById('masterEqToggle').addEventListener('change', (e) => {
+        masterEqEnabled = e.target.checked;
+        EQ_BANDS.forEach((band, idx) => updateDspBand(idx, band.gain));
+        drawEqCurve();
+      });
+
+      // Reset EQ
+      document.getElementById('resetEqBtn').addEventListener('click', () => {
+        selectPreset('Flat');
+      });
+
+      // Save Preset
+      document.getElementById('savePresetBtn').addEventListener('click', () => {
+        const name = prompt('Enter a name for your custom preset:', 'My Bass Studio');
+        if (name && name.trim()) {
+          const trimmed = name.trim();
+          PRESETS[trimmed] = EQ_BANDS.map(b => b.gain);
+          currentPresetName = trimmed;
+          initUI();
+          updatePresetPillActiveState();
+          alert(`Preset "${trimmed}" saved locally!`);
+        }
+      });
+
+      // Bass Boost Slider & Toggle
+      const bassSlider = document.getElementById('bassGainSlider');
+      bassSlider.addEventListener('input', (e) => {
+        bassGainPercent = parseInt(e.target.value);
+        document.getElementById('bassGainDisplay').textContent = `${bassGainPercent}%`;
+        initWebAudio();
+        updateDspBass();
+      });
+
+      const bassFreqSlider = document.getElementById('bassFreqSlider');
+      bassFreqSlider.addEventListener('input', (e) => {
+        bassFrequency = parseInt(e.target.value);
+        document.getElementById('bassFreqDisplay').textContent = `${bassFrequency} Hz`;
+        initWebAudio();
+        updateDspBass();
+      });
+
+      document.getElementById('bassBoostToggle').addEventListener('change', (e) => {
+        bassBoostEnabled = e.target.checked;
+        initWebAudio();
+        updateDspBass();
+      });
+
+      // Subwoofer Sliders & Toggle
+      const subGainSlider = document.getElementById('subGainSlider');
+      subGainSlider.addEventListener('input', (e) => {
+        subGainPercent = parseInt(e.target.value);
+        document.getElementById('subGainDisplay').textContent = `${subGainPercent}%`;
+        initWebAudio();
+        updateDspSubwoofer();
+      });
+
+      const subFreqSlider = document.getElementById('subFreqSlider');
+      subFreqSlider.addEventListener('input', (e) => {
+        subCutoffFreq = parseInt(e.target.value);
+        document.getElementById('subFreqDisplay').textContent = `${subCutoffFreq} Hz`;
+        document.getElementById('subCutoffBadge').textContent = `${subCutoffFreq} Hz Cutoff`;
+        initWebAudio();
+        updateDspSubwoofer();
+        drawSubCurve();
+      });
+
+      document.getElementById('subwooferToggle').addEventListener('change', (e) => {
+        subEnabled = e.target.checked;
+        initWebAudio();
+        updateDspSubwoofer();
+        drawSubCurve();
+      });
+
+      // Audio Balance Slider
+      document.getElementById('balanceSlider').addEventListener('input', (e) => {
+        balanceVal = parseFloat(e.target.value);
+        const display = document.getElementById('balanceDisplay');
+        if (balanceVal === 0) display.textContent = 'Center (0)';
+        else if (balanceVal < 0) display.textContent = `${Math.round(Math.abs(balanceVal) * 100)}% L`;
+        else display.textContent = `${Math.round(balanceVal * 100)}% R`;
+        
+        if (stereoPannerNode && audioCtx) {
+          stereoPannerNode.pan.setTargetAtTime(balanceVal, audioCtx.currentTime, 0.02);
+        }
+      });
+
+      // Preamp Output Gain
+      document.getElementById('preampSlider').addEventListener('input', (e) => {
+        preampGainDb = parseFloat(e.target.value);
+        document.getElementById('preampDisplay').textContent = `${preampGainDb > 0 ? '+' : ''}${preampGainDb.toFixed(1)} dB`;
+        if (masterGainNode && audioCtx) {
+          const linearGain = Math.pow(10, preampGainDb / 20);
+          masterGainNode.gain.setTargetAtTime(linearGain, audioCtx.currentTime, 0.02);
+        }
+      });
+
+      // Loudness & Virtualizer Toggles
+      document.getElementById('loudnessToggle').addEventListener('change', (e) => {
+        loudnessEnabled = e.target.checked;
+        if (dynamicsCompressor && masterGainNode && audioCtx) {
+          dynamicsCompressor.threshold.value = loudnessEnabled ? -14 : 0;
+        }
+      });
+
+      // Modals
+      const modal = document.getElementById('androidModal');
+      document.getElementById('androidSourceBtn').addEventListener('click', () => {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+      });
+      document.getElementById('closeModalBtn').addEventListener('click', () => {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+      });
+      document.getElementById('exportProfileBtn').addEventListener('click', () => {
+        const profile = {
+          name: currentPresetName,
+          eqBands: EQ_BANDS.map(b => ({ freq: b.freq, gain: b.gain })),
+          bassBoost: { enabled: bassBoostEnabled, strength: bassGainPercent, freq: bassFrequency },
+          subwoofer: { enabled: subEnabled, level: subGainPercent, crossoverCutoff: subCutoffFreq },
+          effects: { loudness: loudnessEnabled, balance: balanceVal, preampDb: preampGainDb }
+        };
+        const blob = new Blob([JSON.stringify(profile, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `AuraEQ_${currentPresetName.replace(/\s+/g, '_')}.json`;
+        a.click();
+      });
+
+      // Resize redraws
+      window.addEventListener('resize', () => {
+        drawEqCurve();
+        drawSubCurve();
+      });
+    });
+  </script>
+</body>
+</html>

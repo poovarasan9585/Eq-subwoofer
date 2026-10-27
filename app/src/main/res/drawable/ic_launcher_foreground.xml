@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#00000000"
+        android:pathData="M0,0h108v108h-108z" />
+    <group
+        android:pivotX="54"
+        android:pivotY="54">
+        <!-- EQ Sliders Back Rails -->
+        <path
+            android:pathData="M34,30 L34,78"
+            android:strokeWidth="3.5"
+            android:strokeColor="#1E293B"
+            android:strokeLineCap="round" />
+        <path
+            android:pathData="M54,26 L54,82"
+            android:strokeWidth="3.5"
+            android:strokeColor="#1E293B"
+            android:strokeLineCap="round" />
+        <path
+            android:pathData="M74,30 L74,78"
+            android:strokeWidth="3.5"
+            android:strokeColor="#1E293B"
+            android:strokeLineCap="round" />
+
+        <!-- Active Sliders Glow Fill -->
+        <path
+            android:pathData="M34,50 L34,78"
+            android:strokeWidth="4"
+            android:strokeColor="#0D9488"
+            android:strokeLineCap="round" />
+        <path
+            android:pathData="M54,36 L54,82"
+            android:strokeWidth="4"
+            android:strokeColor="#14B8A6"
+            android:strokeLineCap="round" />
+        <path
+            android:pathData="M74,58 L74,78"
+            android:strokeWidth="4"
+            android:strokeColor="#2DD4BF"
+            android:strokeLineCap="round" />
+
+        <!-- Slider Knobs (Cyan/Teal Gradient Accents) -->
+        <!-- Left Knob -->
+        <path
+            android:fillColor="#0D9488"
+            android:pathData="M34,50m-6.5,0a6.5,6.5 0 1,0 13,0a6.5,6.5 0 1,0 -13,0" />
+        <path
+            android:fillColor="#5EEAD4"
+            android:pathData="M34,50m-3.5,0a3.5,3.5 0 1,0 7,0a3.5,3.5 0 1,0 -7,0" />
+
+        <!-- Center Knob (Highest) -->
+        <path
+            android:fillColor="#0F766E"
+            android:pathData="M54,36m-7.5,0a7.5,7.5 0 1,0 15,0a7.5,7.5 0 1,0 -15,0" />
+        <path
+            android:fillColor="#2DD4BF"
+            android:pathData="M54,36m-4,0a4,4 0 1,0 8,0a4,4 0 1,0 -8,0" />
+
+        <!-- Right Knob -->
+        <path
+            android:fillColor="#14B8A6"
+            android:pathData="M74,58m-6.5,0a6.5,6.5 0 1,0 13,0a6.5,6.5 0 1,0 -13,0" />
+        <path
+            android:fillColor="#99F6E4"
+            android:pathData="M74,58m-3.5,0a3.5,3.5 0 1,0 7,0a3.5,3.5 0 1,0 -7,0" />
+
+        <!-- Dynamic Soundwaves around the central DSP -->
+        <path
+            android:pathData="M20,54 C20,44 23,38 23,38"
+            android:strokeWidth="2.5"
+            android:strokeColor="#0EA5E9"
+            android:strokeLineCap="round" />
+        <path
+            android:pathData="M88,54 C88,44 85,38 85,38"
+            android:strokeWidth="2.5"
+            android:strokeColor="#0EA5E9"
+            android:strokeLineCap="round" />
+    </group>
+</vector>

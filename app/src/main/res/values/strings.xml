@@ -1,0 +1,17 @@
+<resources>
+    <string name="app_name">AuraEQ</string>
+    <string name="title_equalizer">Equalizer</string>
+    <string name="title_subwoofer">Subwoofer DSP</string>
+    <string name="title_player">Audio Studio</string>
+    <string name="title_settings">Settings &amp; Profiles</string>
+    <string name="master_eq">Master EQ</string>
+    <string name="bass_boost">Bass Boost</string>
+    <string name="treble_boost">Treble</string>
+    <string name="virtualizer">3D Virtualizer</string>
+    <string name="loudness">Loudness DSP</string>
+    <string name="crossover_cutoff">Cutoff Frequency</string>
+    <string name="sub_gain">Sub Output Gain</string>
+    <string name="reset_eq">Reset</string>
+    <string name="save_preset">Save Preset</string>
+    <string name="presets">Presets</string>
+</resources>

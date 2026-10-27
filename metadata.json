@@ -1,0 +1,6 @@
+{
+  "name": "AuraEQ",
+  "description": "Professional mobile Equalizer and Subwoofer DSP app with multi-band EQ, bass boost, real-time visualizer, and customizable presets.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
